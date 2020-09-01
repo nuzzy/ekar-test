@@ -2,6 +2,7 @@
 
 namespace App\Tests\Http\Controllers;
 
+use Illuminate\Support\Facades\Http;
 use TestCase;
 
 class SlackBotApiControllerTest extends TestCase
@@ -67,13 +68,43 @@ class SlackBotApiControllerTest extends TestCase
     "event_id": "Ev0PV52K21",
     "event_time": 1355517523
 }';
-        $data = json_decode($slackRequestBody, true);
+        $requestData = json_decode($slackRequestBody, true);
+
+        $responseJson = '{
+            "ok": true,
+            "channel": "C1H9RESGL",
+            "ts": "1503435956.000247",
+            "message": {
+                "text": "Here\'s a message for you",
+                "username": "ecto1",
+                "bot_id": "B19LU7CSY",
+                "attachments": [
+                    {
+                        "text": "This is an attachment",
+                        "id": 1,
+                        "fallback": "This is an attachment\'s fallback"
+                    }
+                ],
+                "type": "message",
+                "subtype": "bot_message",
+                "ts": "1503435956.000247"
+            }
+        }';
+        Http::fake(
+            [
+                'https://slack.com/api/chat.postMessage' => Http::response(
+                    $responseJson,
+                    200,
+                    ['Content-Type' => 'application/json']
+                ),
+            ]
+        );
 
         // Act
         $httpClient = $this->json(
             'POST',
             '/slack-bot/euler-problem-1',
-            $data,
+            $requestData,
             ['Content-Type' => 'application/json']
         );
 
@@ -86,7 +117,7 @@ class SlackBotApiControllerTest extends TestCase
             )
         );
         $this->assertJsonStringEqualsJsonString(
-            '{"result": 23}',
+            '{"result": true}',
             $httpClient->response->getContent()
         );
     }

@@ -12,3 +12,8 @@
 */
 
 $router->post('/slack-bot/euler-problem-1', 'SlackBotApiController@eulerProblem1');
+
+
+$router->get('/slack-bot/euler-problem-1', function () {
+    return 'OK';
+});

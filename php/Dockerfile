@@ -15,9 +15,9 @@ RUN if [ ${USER_ID:-0} -ne 0 ] && [ ${GROUP_ID:-0} -ne 0 ]; then \
 ;fi
 
 
-RUN set -ex \
-  	&& apt-get update \
-  	&& apt-get -y install bash curl zlib1g-dev libzip-dev libicu-dev unzip \
+RUN apt-get update \
+    && requirements="bash nano curl zlib1g-dev libzip-dev libicu-dev unzip" \
+    && apt-get install -y --no-install-recommends $requirements \
   	&& docker-php-ext-install pdo pdo_mysql zip \
     && cd  / && rm -fr /src \
     && apt-get -y update -qq \
@@ -29,6 +29,8 @@ RUN set -ex \
         /var/tmp/* \
         /var/www/*
 
+#RUN openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/ssl-cert-ekar-test.key -out /etc/ssl/certs/ssl-cert-ekar-test.pem -subj "/C=AT/ST=Vienna/L=Vienna/O=Security/OU=Development/CN=localhost"
+
 RUN mkdir /app
 
 WORKDIR /app
@@ -39,3 +41,6 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin -
 COPY . /app
 
 USER www-data
+
+EXPOSE 80
+EXPOSE 443

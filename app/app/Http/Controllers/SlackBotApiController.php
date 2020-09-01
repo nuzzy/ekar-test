@@ -3,11 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Service\EulerProblem1Resolver;
+use App\Service\SlackBotApi;
 use HttpHeaderException;
 use HttpInvalidParamException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 
 class SlackBotApiController extends Controller
 {
@@ -50,6 +50,8 @@ class SlackBotApiController extends Controller
     }
 
     /**
+     * Slack Events set up requires this validation to work on the same URL.
+     *
      * @param array $data
      *
      * @throws HttpInvalidParamException
@@ -88,25 +90,47 @@ class SlackBotApiController extends Controller
             );
         }
 
-        $resolver = new EulerProblem1Resolver(self::EULER_PROBLEM_1_MAX_NUMBER);
+        $isOk = $this->sendResponseToSlackChannel($data['event']);
 
-        return new JsonResponse(['result' => $resolver->resolve($data['event']['text'])]);
+        return new JsonResponse(['result' => $isOk]);
     }
 
     /**
-     * @TODO: Make a call to the Slack Web API endpoint "".
-     * @param int $sum
+     * @param array $eventData
+     *
+     * @throws \App\Exceptions\EulerProblemException
+     *
+     * @return bool
      */
-    protected function sendResponseToSlackChannel(int $sum)
+    protected function sendResponseToSlackChannel(array $eventData): bool
     {
+        if ($this->isRespondingToSelf($eventData)) {
+            return false;
+        }
 
-//POST https://slack.com/api/chat.postMessage
-//Content-type: application/json
-//Authorization: Bearer xoxb-your-token
-//{
-//  "channel": "YOUR_CHANNEL_ID",
-//  "text": "Hello, world",
-//  "as_user": true
-//}
+        $resolver = new EulerProblem1Resolver(self::EULER_PROBLEM_1_MAX_NUMBER);
+        $sum = $resolver->resolve($eventData['text']);
+
+        $accessToken = env('SLACK_ACCESS_TOKEN');
+        $slackBot = new SlackBotApi($accessToken);
+
+        return $slackBot->sendMessage($eventData['channel'], $sum, $eventData['ts']);
+    }
+
+    /**
+     * Check who is the sender to avoid sending reply message to self.
+     *
+     * @param array $eventData
+     *
+     * @return bool
+     */
+    protected function isRespondingToSelf(array $eventData): bool
+    {
+        $botUserId = env('SLACK_BOT_USER_ID');
+        if ($botUserId === $eventData['user']) {
+            return true;
+        }
+
+        return false;
     }
 }
