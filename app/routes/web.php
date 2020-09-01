@@ -11,6 +11,4 @@
 |
 */
 
-$router->get('/', function () use ($router) {
-    return $router->app->version();
-});
+$router->post('/slack-bot/euler-problem-1', 'SlackBotApiController@eulerProblem1');
